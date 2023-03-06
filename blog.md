@@ -80,10 +80,11 @@ If we take a look at the bottom of this `final.wat`, we'll see this.
 (export (;10;) "command" (func 9))
 ```
 
-After embedding information about our wit interface, we now see that an instance of the original wasm module is now exported.  So now let's look at running the thing.  You'll need to install a Bytecode Alliance project called jco.
+After embedding information about our wit interface, we now see that an instance of the original wasm module is now exported.  So now let's look at running the thing.  You'll need to install a Bytecode Alliance project called jco, as well as a shim package for interacting with wasi preview 2.
 
 ```
 npm install -g @bytecodealliance/jco
+npm i @bytecodealliance/preview2-shim
 ```
 
 We can use this to transpile our wasm component, which will generate some javascript that is capable of executing the functions we've exposed.
