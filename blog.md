@@ -112,3 +112,4 @@ You should now be able to run the following, and see the output logged to your c
 node index.js
 ```
 
+Yay we did it.  But that was easy, because adding two numbers together doesn't require interactions with memory at all.  Let's add a function that concatenates strings, to see where the component model really comes in handy.
