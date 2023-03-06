@@ -64,7 +64,7 @@ The only thing that is exported here is a "command", which corresponds to our `m
 
 ```
 wasm-tools component embed example.wit my-component.wasm -o embed.wasm
-wasm-tools component new embedded.wasm -o final.wasm --adapt wasi_snapshot_preview1.wasm
+wasm-tools component new embed.wasm -o final.wasm --adapt wasi_snapshot_preview1.wasm
 wasm-tools print final.wasm > final.wat
 ```
 
@@ -89,7 +89,7 @@ npm install -g @bytecodealliance/jco
 We can use this to transpile our wasm component, which will generate some javascript that is capable of executing the functions we've exposed.
 
 ```
-jco transpile final.wasm -o component
+jco transpile final.wasm -o component --map 'wasi-*=@bytecodealliance/preview2-shim/*' 
 ```
 
 What you're interested in is located in `./component/component.js`, where you should find the following bit of javascript.
@@ -113,3 +113,69 @@ node index.js
 ```
 
 Yay we did it.  But that was easy, because adding two numbers together doesn't require interactions with memory at all.  Let's add a function that concatenates strings, to see where the component model really comes in handy.
+
+The first thing that we're going to need is a function that allows us to allocate memory.  Let's add this to the top of our zig file.
+
+```zig
+const std = @import("std");
+const mem = std.mem;
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+const allocator = gpa.allocator();
+
+fn alloc(len: usize) [*]u8 {
+  const buf = allocator.alloc(u8, len) catch |e| {
+    std.debug.panic("FAILED TO ALLOC MEM {}", .{e});
+  };
+  return buf.ptr;
+}
+```
+
+Now that we have what we need for working with memory, let's go ahead and write the funcion that we want.
+
+```zig
+export fn @"foo#concat"(leftPtr: [*]u8, leftLength: u32, rightPtr: [*]u8, rightLength: u32) [*]u32 {
+  const left = leftPtr[0..leftLength];
+  const right = rightPtr[0..rightLength];
+  const slice = alloc(8);
+  const str = alloc(leftLength + rightLength);
+  std.mem.copy(u8, str[0..leftLength], left);
+  std.mem.copy(u8, str[leftLength..leftLength + rightLength], right);
+  std.mem.writeIntLittle(u32, slice[0..4], @intCast(u32, @ptrToInt(str)));
+  std.mem.writeIntLittle(u32, slice[4..8], @intCast(u32, leftLength + rightLength));
+  return @ptrCast([*]u32, @alignCast(4, slice));
+}
+```
+
+Here a string is represented in 8 bytes.  The first four are used to store a u32 representing a pointer the segment of memory that contains the actual bytes of a string.  The next four bytes are another u32 used to represent the number of bytes used by the string at that pointer.  Hence, `slice` is where these two u32s are stored, and what is returned by our function.  This is needed because core wasm only has numeric data types.  The `std.mem` operations take care of writing the bytes to the pertinent parts of memory for us.
+
+We're also going to need to update our wit file, adding the following just below our add function.
+
+```
+concat: func(left: string, right: string) -> string
+```
+
+If we try to compile now, we'll get some errors, since the canonical abi expects us to provide some information.  This can be fixed by adding the following to our zig code.
+
+```zig
+export fn @"cabi_realloc"(origPtr: *[]u8, origSize: u8, alignment: u8, newSize: u8) ?[*]u8 {
+  _ = origSize;
+  _ = alignment;
+  const buf = allocator.realloc(origPtr.*, newSize) catch {
+    return null;
+  };
+  return buf.ptr;
+}
+
+export fn @"cabi_post_foo#concat"(len: [*]u32) void {
+  _ = len;
+}
+```
+
+Now we should be good to go with the following set of commands.
+
+```
+zig build-exe my-component.zig -target wasm32-wasi -rdynamic
+wasm-tools component embed example.wit my-component.wasm -o embed.wasm
+wasm-tools component new embed.wasm -o final.wasm --adapt wasi_snapshot_preview1.wasm
+jco transpile final.wasm -o component --map 'wasi-*=@bytecodealliance/preview2-shim/*' 
+```

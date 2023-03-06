@@ -1,5 +1,6 @@
 default world example {
   export foo: interface {
     add: func(left: u32, right: u32) -> u32
+    concat: func(left: string, right: string) -> string
   }
 }
