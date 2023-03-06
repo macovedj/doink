@@ -179,3 +179,10 @@ wasm-tools component embed example.wit my-component.wasm -o embed.wasm
 wasm-tools component new embed.wasm -o final.wasm --adapt wasi_snapshot_preview1.wasm
 jco transpile final.wasm -o component --map 'wasi-*=@bytecodealliance/preview2-shim/*' 
 ```
+
+Then just add the following to `index.js`
+```js
+console.log(foo.concat("hello ", "world"))
+```
+
+And voila, we're printing strings to the console from our wasm component.
