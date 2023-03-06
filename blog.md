@@ -131,7 +131,7 @@ fn alloc(len: usize) [*]u8 {
 }
 ```
 
-Now that we have what we need for working with memory, let's go ahead and write the funcion that we want.
+Now that we have what we need for working with memory, let's go ahead and write the function that we want.
 
 ```zig
 export fn @"foo#concat"(leftPtr: [*]u8, leftLength: u32, rightPtr: [*]u8, rightLength: u32) [*]u32 {
@@ -235,7 +235,7 @@ So the fifth export in the component is exported as "foo", and it is instance 4,
 )
 ```
 
-Instance 4 instantiates the 0th wasm module/component, with "add" being supplied by funcion 12 and "concat" being supplied by function 13.  The 0th wasm module/component basically defined by our wit world
+Instance 4 instantiates the 0th wasm module/component, with "add" being supplied by function 12 and "concat" being supplied by function 13.  The 0th wasm module/component basically defined by our wit world
 
 ```ts
 (component (;0;)
