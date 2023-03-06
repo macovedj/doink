@@ -35,8 +35,13 @@ export fn @"cabi_realloc"(origPtr: *[]u8, origSize: u8, alignment: u8, newSize: 
   return buf.ptr;
 }
 
-export fn @"cabi_post_foo#concat"(len: [*]u32) void {
-  _ = len;
+export fn @"cabi_post_foo#concat"(ptr: [*]u32) void {
+  var stringPtr = ptr[0..1];
+  var stringSize = ptr[1..2];
+  var bytesPtr = std.mem.readIntLittle(usize, @ptrCast(*u8, stringPtr));
+  var ptr_size = std.mem.readIntLittle(usize, @ptrCast(*u8, stringSize));
+  allocator.free(@intToPtr([*]u8, bytesPtr)[0..ptr_size]);
+  allocator.free(stringPtr);
 }
 
 pub fn main() void {}
