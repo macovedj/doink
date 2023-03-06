@@ -187,3 +187,32 @@ console.log(foo.concat("hello ", "world"))
 ```
 
 And voila, we're printing strings to the console from our wasm component.
+
+So what is the component model doing for us here?
+
+First let's talk about what things would look like if we just wanted to do this with a core wasm module.  Since core wasm functions can't receive strings as input, we would have to write to memory directly on the javascript side, similarly to how we do things on the zig side here, just to provide the input strings.  Here's an example of what that might look like.
+
+```js
+const instance = await WebAssembly.instantiate(compiledModule);
+const mem = instance.exports.memory;
+const alloc = instance.exports.alloc;
+const helloPtr = alloc(6);
+const worldPtr = alloc(5);
+const encoder = new TextEncoder();
+const helloBuf = new Uint8Array(mem, helloPtr, 6);
+const worldBuf = new Uint8Array(mem, worldPtr, 5);
+helloBuf.set(encoder.encode("hello "));
+worldBuf.set(encoder.encode("world"));
+const concatPtr = instance.exports.foo.concat(helloBuf, 5, worldBuf, 6)
+const concatBuf = new Uint8Array(mem, concatBuf, 8)
+const stringPtr = concatBuf.getUint32(0);
+const stringSize = concatBuf.getUint32(4);
+const decoder = new TextDeoder()
+const concatReturnval = decoder.decode(new Uint8Array(mem, stringPtr, stringSize))
+console.log(concatReturnVal)
+```
+
+That's a lot more annoying than the simple function that jco provided for us.
+```js
+console.log(foo.concat("hello", "world"))
+```
