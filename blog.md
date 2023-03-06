@@ -207,7 +207,7 @@ const concatPtr = instance.exports.foo.concat(helloBuf, 5, worldBuf, 6)
 const concatBuf = new Uint8Array(mem, concatBuf, 8)
 const stringPtr = concatBuf.getUint32(0);
 const stringSize = concatBuf.getUint32(4);
-const decoder = new TextDeoder()
+const decoder = new TextDecoder()
 const concatReturnval = decoder.decode(new Uint8Array(mem, stringPtr, stringSize))
 console.log(concatReturnVal)
 ```
@@ -217,4 +217,42 @@ That's a lot more annoying than the simple function that jco provided for us.
 console.log(foo.concat("hello", "world"))
 ```
 
-But this is a really simple example.  This is with strings.  What if we were working with json?  Not only that, but the memory layout that we use is something that will vary, depending on the layout used by the language that we used to implement the guest.  So here, a string is represented by a u32 for the pointer, and a u32 for the size.  If we have nested data structures that we create using something like json, the memory representation is more complex, and the js that we write to call the exposed functions might only work if we know that the the wasm was generated from zig code.  This is all so annoying that it makes using wasm at all seem very impractical.  But the canonical abi in the component model provides a common memory layout for everything to use, so that we don't need to know what language the guest was written in in order to use it in our host, and you can even have guests talk directly to each other withouth any knowledge about their original implementation language... (something we'll cover in another post soon)
+But this is a really simple example.  This is with strings.  What if we were working with json?  Not only that, but the memory layout that we use is something that will vary, depending on the layout used by the language that we used to implement the guest.  So here, a string is represented by a u32 for the pointer, and a u32 for the size.  If we have nested data structures that we create using something like json, the memory representation is more complex, and the js that we write to call the exposed functions might only work if we know that the the wasm was generated from zig code.  This is all so annoying that it makes using wasm at all seem very impractical.  But the canonical abi in the component model provides a common memory layout for everything to use, so that we don't need to know what language the guest was written in in order to use it in our host, and you can even have guests talk directly to each other withouth any knowledge about their original implementation language... (something I also hope to write about soon).
+
+To see this, let's look at the WebAssembly text for our concat function.
+
+```ts
+(export (;5;) "foo" (instance 4))
+```
+
+So the fifth export in the component is exported as "foo", and it is instance 4, which we can also look at.
+
+```ts
+(instance (;4;) (instantiate 0
+    (with "add" (func 12))
+    (with "concat" (func 13))
+  )
+)
+```
+
+Instance 4 instantiates the 0th wasm module/component, with "add" being supplied by funcion 12 and "concat" being supplied by function 13.  The 0th wasm module/component basically defined by our wit world
+
+```ts
+(component (;0;)
+    (alias outer 1 6 (type (;0;)))
+    (import "add" (func (;0;) (type 0)))
+    (alias outer 1 7 (type (;1;)))
+    (import "concat" (func (;1;) (type 1)))
+    (type (;2;) (func (param "left" u32) (param "right" u32) (result u32)))
+    (export (;2;) "add" (func 0) (func (type 2)))
+    (type (;3;) (func (param "left" string) (param "right" string) (result string)))
+    (export (;3;) "concat" (func 1) (func (type 3)))
+  )
+  ```
+
+  And function 13 looks like this
+  ```ts
+  (func (;13;) (type 7) (canon lift (core func 35) (memory 0) (realloc 5) string-encoding=utf8 (post-return 36)))
+  ```
+
+  Here is where the core function export that we wrote for concat is "lifted" from core wasm to the canonical abi.  It uses the realloc function that we had to write as well, to lift the representation of the various data structures into the canonical abi.
