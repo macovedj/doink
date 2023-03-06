@@ -78,4 +78,34 @@ If we take a look at the bottom of this `final.wat`, we'll see this.
 (export (;10;) "command" (func 9))
 ```
 
-After embedding information about our wit interface, we now see that an instance of the original wasm module is now exported.
+After embedding information about our wit interface, we now see that an instance of the original wasm module is now exported.  So now let's look at running the thing.  You'll need to install a Bytecode Alliance project called jco.
+
+```
+npm install -g @bytecodealliance/jco
+```
+
+We can use this to transpile our wasm component, which will generate some javascript that is capable of executing the functions we've exposed.
+
+```
+jco transpile final.wasm -o component
+```
+
+What you're interested in is located in `./component/component.js`, where you should find the following bit of javascript.
+
+```js
+export { foo, command }
+```
+
+Note that had we not embedded the wit file, the `foo` export would not be present.  We can now author the file will call our wasm exports.  I've called mine `index.js` and made it look like this
+
+```js
+import { foo } from "./component/component.js"
+
+console.log(foo.add(2, 3))
+```
+
+You should now be able to run the following, and see the output logged to your console.
+
+```
+node index.js
+```
