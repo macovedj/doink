@@ -38,6 +38,8 @@ Ok, let's actually make a component from our webassembly module now.
 wasm-tools component new my-component.wasm -o final.wasm --adapt wasi_snapshot_preview1.wasm
 ```
 
+In order to get this to work properly, you'll need to visit [this page](https://github.com/bytecodealliance/preview2-prototyping/releases/tag/latest) and grab an adapter module.  The idea here is that components will be using wasi preview2, but our zig code was compiled to using wasi preview1.  The adapter module takes code that expects preview1 imports, and turns it into code that expects preview2 imports instead.  One confusing and very important thing about all of this is that because our code has a `main` function, we actually need to grab `wasi_snapshot_preview1.command.wasm` at the link referenced above, but our tools won't work unless you rename it to `wasi_snapshot_preview1.wasm`.
+
 This command creates a perfectly legitimate wasm component, but unfortunately it's not the component that we need.
 You can use the following command to create WebAssembly Text Format in order to see what's going on in our wasm component
 ```
@@ -109,3 +111,4 @@ You should now be able to run the following, and see the output logged to your c
 ```
 node index.js
 ```
+
