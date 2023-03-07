@@ -1,6 +1,0 @@
-{
-  "type": "module",
-  "dependencies": {
-    "@bytecodealliance/preview2-shim": "^0.0.3"
-  }
-}

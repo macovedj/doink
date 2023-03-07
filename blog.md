@@ -93,7 +93,7 @@ We can use this to transpile our wasm component, which will generate some javasc
 jco transpile final.wasm -o component --map 'wasi-*=@bytecodealliance/preview2-shim/*' 
 ```
 
-What you're interested in is located in `./component/component.js`, where you should find the following bit of javascript.
+What you're interested in is located in `./final/final.js`, where you should find the following bit of javascript.
 
 ```js
 export { foo, command }
@@ -102,7 +102,7 @@ export { foo, command }
 Note that had we not embedded the wit file, the `foo` export would not be present.  We can now author the file will call our wasm exports.  I've called mine `index.js` and made it look like this
 
 ```js
-import { foo } from "./component/component.js"
+import { foo } from "./final/final.js"
 
 console.log(foo.add(2, 3))
 ```
